@@ -2,6 +2,8 @@ import cv2
 # winsound sepertinya gk terlalu dibutuhin gantinya import io
 import io
 import telebot
+import threading
+
 api = "1752888275:AAGoy1NhTK0K6OfXHwK0jIYqe9VP246kGkc"
 bot = telebot.TeleBot(api)
 ID_TELE = ""
@@ -10,6 +12,18 @@ face = cv2.CascadeClassifier(
     cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 smile = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_smile.xml')
 cap = cv2.VideoCapture(0)
+
+def sendAlert(frame):
+    # aku ambil sebagian kode dari https://stackoverflow.com/a/52865864
+    # sama file satunya
+    success, jpgBuffer = cv2.imencode(".jpg", frame)
+    if success:
+        temp = io.BytesIo()
+        temp.save(jpgBuffer)
+        temp.seek(0) # penting!!
+
+        bot.sendMessage(ID_TELE, "Tidak pakai masker")
+        bot.sendPhoto(ID_TELE, ('temp.jpg', temp))
 
 while True:
     ret, frame = cap.read()
@@ -44,20 +58,12 @@ while True:
         # kenapa gk diatas aja?
         # karena gk mau ada kejadian ngirim file berkali2
 
-        # aku ambil sebagian kode dari https://stackoverflow.com/a/52865864
-        # sama file satunya
+        if threading.active_count() == 1:
+            # wajib 1
+            # artinya, gk ada thread lain yg lagi ngejalanin fungsi sendAlert
 
-        success, jpgBuffer = cv2.imencode(".jpg", frame)
-        if success:
-            temp = io.BytesIo()
-            temp.save(jpgBuffer)
-            temp.seek(0) # penting!!
-
-            bot.sendMessage(ID_TELE, "Tidak pakai masker")
-            bot.sendPhoto(ID_TELE, ('temp.jpg', temp))
-
-            # sementara kamera bakal ngefreeze buat ngirim fotonya
-            # bisa diakali pakai threading
+            th = threading.Thread(sendAlert, args=(frame,))
+            th.start()
 
     cv2.imshow('frame', gray)
     if cv2.waitKey(1) & 0xFF == ord('q'):
