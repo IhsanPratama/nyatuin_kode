@@ -3,15 +3,19 @@ import cv2
 import io
 import telebot
 import threading
+import winsound
+
+# windsound dibutuhin gan biar keluar suara tittt ketika ada yang ga pake masker
 
 api = "1752888275:AAGoy1NhTK0K6OfXHwK0jIYqe9VP246kGkc"
 bot = telebot.TeleBot(api)
-ID_TELE = ""
+ID_TELE = "626351605"
 
 face = cv2.CascadeClassifier(
     cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 smile = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_smile.xml')
 cap = cv2.VideoCapture(0)
+
 
 def sendAlert(frame):
     # aku ambil sebagian kode dari https://stackoverflow.com/a/52865864
@@ -20,10 +24,11 @@ def sendAlert(frame):
     if success:
         temp = io.BytesIo()
         temp.save(jpgBuffer)
-        temp.seek(0) # penting!!
+        temp.seek(0)  # penting!!
 
         bot.sendMessage(ID_TELE, "Tidak pakai masker")
         bot.sendPhoto(ID_TELE, ('temp.jpg', temp))
+
 
 while True:
     ret, frame = cap.read()
@@ -40,7 +45,7 @@ while True:
         pesan = 'Dengan Masker'
         color = (0, 255, 0)
 
-        #for ex, ey, ew, eh in smiles:
+        # for ex, ey, ew, eh in smiles:
         if smiles:
             pesan = 'Tanpa Masker'
             color = (0, 0, 255)
