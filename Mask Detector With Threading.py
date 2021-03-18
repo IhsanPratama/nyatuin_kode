@@ -7,6 +7,8 @@ import winsound
 
 # windsound dibutuhin gan biar keluar suara tittt ketika ada yang ga pake masker
 
+# import os
+# api = os.getenv("TELEGRAM_BOT_API")
 api = "1752888275:AAGoy1NhTK0K6OfXHwK0jIYqe9VP246kGkc"
 bot = telebot.TeleBot(api)
 ID_TELE = "626351605"
@@ -16,12 +18,14 @@ face = cv2.CascadeClassifier(
 smile = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_smile.xml')
 cap = cv2.VideoCapture(0)
 
+print("==== Bot sedang berjalan ====")
 
 def sendAlert(frame):
     # aku ambil sebagian kode dari https://stackoverflow.com/a/52865864
     # sama file satunya
     success, jpgBuffer = cv2.imencode(".jpg", frame)
     if success:
+        print (" Mengirim Foto")
         temp = io.BytesIo()
         temp.save(jpgBuffer)
         temp.seek(0)  # penting!!
@@ -45,14 +49,18 @@ while True:
         pesan = 'Dengan Masker'
         color = (0, 255, 0)
 
-        # for ex, ey, ew, eh in smiles:
-        if smiles:
+        for ex, ey, ew, eh in smiles:
+        # if smiles:
             pesan = 'Tanpa Masker'
             color = (0, 0, 255)
 
             mask = False
+            winsound.Beep(2500, 1000)
+            # buat cross platform bisa pake print("\a")
+            break
+
             # karna disini kedeteksi tanpa masker otomatis mask jadi False
-            # dan kayaknya gk perlu pakai looping
+            # sementara pake looping
 
         cv2.rectangle(gray, (x, y), (x + w, y + h), color, 2)
         cv2.putText(gray, pesan, (x, y - 10),
@@ -64,7 +72,7 @@ while True:
         # karena gk mau ada kejadian ngirim file berkali2
 
         if threading.active_count() == 1:
-            # wajib 1
+            # wajib 1, yg aktif cuma main thread
             # artinya, gk ada thread lain yg lagi ngejalanin fungsi sendAlert
 
             th = threading.Thread(sendAlert, args=(frame,))
