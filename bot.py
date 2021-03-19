@@ -3,14 +3,15 @@ logging.basicConfig(
     format="%(threadName)s: --- %(message)s", level=logging.INFO)
 
 logging.info("Mengimport module")
-
-import cv2
-import winsound
-import telebot
-import threading
-import queue
-import io
 import time
+import io
+import queue
+import threading
+import telebot
+import winsound
+import cv2
+import signal
+import sys
 
 logging.info("Inisiasi Bot telegram")
 bot = telebot.TeleBot(
@@ -48,12 +49,12 @@ def startCapture():
     logging.info("Memulai kamera")
     cap = cv2.VideoCapture(0)
 
-    ret, frame = cap.read()
-    frame = cv2.flip(frame, 1)
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
-    faces = face.detectMultiScale(gray, 1.1, 5, 0, (140, 140), (250, 250))
-
     while not stopAll:
+        ret, frame = cap.read()
+        frame = cv2.flip(frame, 1)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
+        faces = face.detectMultiScale(gray, 1.1, 5, 0, (140, 140), (250, 250))
+
         mask = True
         for x, y, w, h in faces:
             smiles = smile.detectMultiScale(
@@ -106,6 +107,12 @@ def sendSignal(message):
     bot.reply_to(message, "Video Capture dihentikan")
     stopAll = True
 
+def ctrlChandler(signal, frame):
+    global stopAll
+    stopAll = True
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 logging.info("Bot Berjalan")
 bot.polling()
