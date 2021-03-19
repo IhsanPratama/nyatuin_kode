@@ -78,6 +78,11 @@ def startCapture():
             q.put(frame)
             break
 
+        cv2.imshow("frame", frame)
+        if cv2.waitkey(0) and 0xFF == ord("q"):
+            break
+    cv2.release()
+    cv2.destroyAllWindows()
 
 logging.info("Thread dijalankan")
 th = threading.Thread(target=sendAlert)
