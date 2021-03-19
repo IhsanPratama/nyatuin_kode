@@ -114,7 +114,6 @@ while not stopAll:
     if mask is False:
         logging.info("Menambahkan item ke dalam queue")
         q.put(frame)
-        break
 
     cv2.imshow("frame", frame)
     if cv2.waitKey(1) and 0xFF == ord("q"):
