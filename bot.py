@@ -1,23 +1,23 @@
+import sys
+import signal
+import cv2
+import winsound
+import telebot
+import threading
+import queue
+import io
+import time
 import logging
 logging.basicConfig(
     format="%(threadName)s: --- %(message)s", level=logging.INFO)
 
 logging.info("Mengimport module")
-import time
-import io
-import queue
-import threading
-import telebot
-import winsound
-import cv2
-import signal
-import sys
 
 logging.info("Inisiasi Bot telegram")
 bot = telebot.TeleBot(
     "1752888275:AAGoy1NhTK0K6OfXHwK0jIYqe9VP246kGkc"
 )
-SUPERUSER = 1643763065  # ganti pakai id telegrammu
+SUPERUSER = 626351605  # ganti pakai id telegrammu
 
 q = queue.Queue()
 stopAll = False
@@ -31,10 +31,10 @@ def sendAlert():
 
         success, jpgFrame = cv2.imencode(".jpg", frame)
         if success:
-            logging.info(f"Mengirim foto ke {userId}")
+            logging.info(f"Mengirim foto ke {SUPERUSER}")
             ioBuffer = io.BytesIO(frame.read())
             ioBuffer.seek(0)  # penting !!
-            bot.send_photo(userId, ioBuffer,
+            bot.send_photo(SUPERUSER, ioBuffer,
                            caption="Terdeteksi tidak menggunakan masker")
         q.task_done()
 
@@ -107,10 +107,12 @@ def sendSignal(message):
     bot.reply_to(message, "Video Capture dihentikan")
     stopAll = True
 
-def ctrlChandler(signal, frame):
+
+def signal_handler(signal, frame):
     global stopAll
     stopAll = True
     sys.exit(0)
+
 
 signal.signal(signal.SIGINT, signal_handler)
 
