@@ -132,5 +132,6 @@ while not stopAll:
     # referensi: https://stackoverflow.com/a/52913689
     if cv2.waitKey(0) and 0xFF == ord("q"):
         break
+
 cv2.release()
 cv2.destroyAllWindows()
