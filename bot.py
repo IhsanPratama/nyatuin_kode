@@ -1,30 +1,31 @@
+import time  # kasih penjelasan tiap library yang di import
+import io
+import queue
+import threading
+import telebot
+import winsound
+import cv2
+import signal
+import sys
 import logging
 logging.basicConfig(
-    format="%(threadName)s: --- %(message)s", level=logging.INFO)
-
+    format="%(threadName)s: --- %(message)s", level=logging.INFO)  # bagian ini gan buat apa ?
+# jelasin gan per baris koding biar ane paham
 logging.info("Mengimport module")
-import sys
-import signal
-import cv2
-import winsound
-import telebot
-import threading
-import queue
-import io
-import time
 
 logging.info("Inisiasi Bot telegram")
 bot = telebot.TeleBot(
-    "1752888275:AAGoy1NhTK0K6OfXHwK0jIYqe9VP246kGkc"
+    "1752888275:AAGoy1NhTK0K6OfXHwK0jIYqe9VP246kGkc"  # kalo ini dah paham
 )
 SUPERUSER = 626351605  # ganti pakai id telegrammu
-DELAY = 2 # detik
+DELAY = 2  # detik masih belum  ngaruh. langsung brebett aja banyak foto
 
-q = queue.Queue()
+q = queue.Queue()  # jelasin ini gan
 stopAll = False
-lastSending = None # varibel ini yg bakal dijadiin timestamp
+lastSending = None  # varibel ini yg bakal dijadiin timestamp
 
-def sendAlert():
+
+def sendAlert():  # jelasin proses ini sampe bawah
     # referensi penggunaan global variable
     # https://stackoverflow.com/questions/4693120/use-of-global-keyword-in-python
     global lastSending
@@ -36,7 +37,7 @@ def sendAlert():
         success, jpgFrame = cv2.imencode(".jpg", frame)
         if success:
             winsound.Beep(2500, 1000)
-
+            lastSending = time.time()
             logging.info(f"Mengirim foto ke {SUPERUSER}")
             # referensi: https://stackoverflow.com/a/11696554
             ioBuffer = io.BytesIO(jpgFrame)
@@ -45,8 +46,8 @@ def sendAlert():
                            caption="Terdeteksi tidak menggunakan masker")
 
             # update timestamp setelah berhasil mengirim foto
-            lastSending = time.time()
-        q.task_done()
+
+        q.task_done()  # jelasin gan
 
 
 @bot.message_handler(commands=['start'])
@@ -69,10 +70,12 @@ def sendSignal(message):
 
 
 # handling ctrl-C signal
-def signal_handler(signal, frame):
+def signal_handler(signal, frame):  # jelasin ini gan
     global stopAll
     stopAll = True
-signal.signal(signal.SIGINT, signal_handler)
+
+
+signal.signal(signal.SIGINT, signal_handler)  # jelasin ini gan nyampe bawah
 
 
 # menjalankan fungsi sendAlert dan bot
@@ -100,12 +103,13 @@ while not stopAll:
     ret, frame = cap.read()
     frame = cv2.flip(frame, 1)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
+    # jelasin angka angka ini gan
     faces = face.detectMultiScale(gray, 1.1, 5, 0, (140, 140), (250, 250))
 
     mask = True
     for x, y, w, h in faces:
         smiles = smile.detectMultiScale(
-            gray[y:y + h, x:x + w], 1.4, 5, 0, (75, 75), (90, 90))
+            gray[y:y + h, x:x + w], 1.4, 5, 0, (75, 75), (90, 90))  # sama ini juga
         pesan = 'Dengan Masker'
         color = (0, 255, 0)
 
@@ -126,12 +130,12 @@ while not stopAll:
         # atau belum diset
         if not lastSending or int(time.time() - lastSending) > DELAY:
             logging.info("Menambahkan frame ke dalam queue")
-            q.put(frame)
+            q.put(frame)  # jelasin bagian ini
 
     cv2.imshow("frame", frame)
     # aku ambil kode dari sini
     # https://stackoverflow.com/a/52913689
-    if cv2.waitKey(0) and 0xFF == ord("q"):
+    if cv2.waitKey(1) and 0xFF == ord("q"):
         break
 
 cv2.release()
