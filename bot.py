@@ -38,8 +38,8 @@ def sendAlert():
             winsound.Beep(2500, 1000)
 
             logging.info(f"Mengirim foto ke {SUPERUSER}")
-            ioBuffer = io.BytesIO(frame.read())
             # referensi: https://stackoverflow.com/a/11696554
+            ioBuffer = io.BytesIO(jpgFrame)
             ioBuffer.seek(0)  # penting !!
             bot.send_photo(SUPERUSER, ioBuffer,
                            caption="Terdeteksi tidak menggunakan masker")
