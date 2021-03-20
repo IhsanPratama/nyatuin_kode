@@ -22,7 +22,7 @@ DELAY = 2 # detik
 
 q = queue.Queue()
 stopAll = False
-lastSending = None
+lastSending = None # varibel ini yg bakal dijadiin timestamp
 
 def sendAlert():
     # referensi penggunaan global variable
@@ -32,11 +32,11 @@ def sendAlert():
     logging.info("sendAlert dijalankan")
     while not stopAll:
         frame = q.get()
-        winsound.Beep(2500, 1000)
-
         # ubah numpy array (frame) ke bentuk format jpg
         success, jpgFrame = cv2.imencode(".jpg", frame)
         if success:
+            winsound.Beep(2500, 1000)
+
             logging.info(f"Mengirim foto ke {SUPERUSER}")
             ioBuffer = io.BytesIO(frame.read())
             # referensi: https://stackoverflow.com/a/11696554
@@ -74,6 +74,8 @@ def signal_handler(signal, frame):
     stopAll = True
 signal.signal(signal.SIGINT, signal_handler)
 
+
+# menjalankan fungsi sendAlert dan bot
 th = threading.Thread(target=sendAlert)
 th.setDaemon(True)
 th.start()
@@ -126,10 +128,9 @@ while not stopAll:
             logging.info("Menambahkan frame ke dalam queue")
             q.put(frame)
 
-    # tampilkan frame
     cv2.imshow("frame", frame)
-
-    # referensi: https://stackoverflow.com/a/52913689
+    # aku ambil kode dari sini
+    # https://stackoverflow.com/a/52913689
     if cv2.waitKey(0) and 0xFF == ord("q"):
         break
 
