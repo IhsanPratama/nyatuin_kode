@@ -18,12 +18,15 @@ bot = telebot.TeleBot(
     "1752888275:AAGoy1NhTK0K6OfXHwK0jIYqe9VP246kGkc"
 )
 SUPERUSER = 626351605  # ganti pakai id telegrammu
+DELAY = 2 # detik
 
 q = queue.Queue()
 stopAll = False
-
+lastSending = None
 
 def sendAlert():
+    global lastSending
+
     logging.info("sendAlert dijalankan")
     while not stopAll:
         frame = q.get()
@@ -36,6 +39,7 @@ def sendAlert():
             ioBuffer.seek(0)  # penting !!
             bot.send_photo(SUPERUSER, ioBuffer,
                            caption="Terdeteksi tidak menggunakan masker")
+            lastSending = time.time()
         q.task_done()
 
 
@@ -112,11 +116,12 @@ while not stopAll:
         cv2.putText(frame, pesan, (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
     if mask is False:
-        logging.info("Menambahkan item ke dalam queue")
-        q.put(frame)
+        if not lastSending or int(time.time() - lastSending) > DELAY:
+            logging.info("Menambahkan item ke dalam queue")
+            q.put(frame)
 
     cv2.imshow("frame", frame)
-    if cv2.waitKey(1) and 0xFF == ord("q"):
+    if cv2.waitKey(0) and 0xFF == ord("q"):
         break
 cv2.release()
 cv2.destroyAllWindows()
