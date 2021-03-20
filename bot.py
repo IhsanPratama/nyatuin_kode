@@ -38,8 +38,8 @@ def sendAlert():
         success, jpgFrame = cv2.imencode(".jpg", frame)
         if success:
             logging.info(f"Mengirim foto ke {SUPERUSER}")
-            ioBuffer = io.BytesIO(frame.read())
             # referensi: https://stackoverflow.com/a/11696554
+            ioBuffer = io.BytesIO(jpgFrame)
             ioBuffer.seek(0)  # penting !!
             bot.send_photo(SUPERUSER, ioBuffer,
                            caption="Terdeteksi tidak menggunakan masker")
