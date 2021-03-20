@@ -22,13 +22,9 @@ DELAY = 2 # detik
 
 q = queue.Queue()
 stopAll = False
-lastSending = None # varibel ini yg bakal dijadiin timestamp
+lastSending = None # variabel ini yg bakal dijadiin timestamp
 
 def sendAlert():
-    # referensi penggunaan global variable
-    # https://stackoverflow.com/questions/4693120/use-of-global-keyword-in-python
-    global lastSending
-
     logging.info("sendAlert dijalankan")
     while not stopAll:
         frame = q.get()
@@ -43,9 +39,6 @@ def sendAlert():
             ioBuffer.seek(0)  # penting !!
             bot.send_photo(SUPERUSER, ioBuffer,
                            caption="Terdeteksi tidak menggunakan masker")
-
-            # update timestamp setelah berhasil mengirim foto
-            lastSending = time.time()
         q.task_done()
 
 
@@ -110,7 +103,6 @@ while not stopAll:
         color = (0, 255, 0)
 
         for ex, ey, ew, eh in smiles:
-            logging.info("Terdeteksi tanpa masker")
             pesan = 'Tanpa Masker'
             color = (0, 0, 255)
             mask = False
@@ -124,14 +116,18 @@ while not stopAll:
         # setelah terdeteksi tidak menggunakan masker
         # selanjutnya pastikan kalau waktu terakhir mengirim itu kurang dari DELAY
         # atau belum diset
-        if not lastSending or int(time.time() - lastSending) > DELAY:
+        current = time.time()
+        if not lastSending or int(current - lastSending) > DELAY:
             logging.info("Menambahkan frame ke dalam queue")
             q.put(frame)
+            lastSending = current
+        else:
+            logging.info(f"lastSending: %s", current - (lastSending or 0))
 
     cv2.imshow("frame", frame)
     # aku ambil kode dari sini
     # https://stackoverflow.com/a/52913689
-    if cv2.waitKey(0) and 0xFF == ord("q"):
+    if cv2.waitKey(0) and 0xFF in [ord("q"), ord("Q")]:
         break
 
 cv2.release()
