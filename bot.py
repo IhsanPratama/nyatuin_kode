@@ -1,17 +1,33 @@
-import time  # kasih penjelasan tiap library yang di import
+import logging
+
+# Dalam kasus ini aku pakai logging buat pengganti print aja sih
+# referensi, cara kerja logging dll bisa baca disini
+# https://gist.github.com/mariocj89/73824162a3e35d50db8e758a42e39aab
+
+logging.basicConfig(
+    format="%(threadName)s: --- %(message)s", level=logging.INFO)
+
+logging.info("Mengimport module")
+
+import time
+
+# aku pake module ini buat pengganti keyword open
+# penjelasan kenapa, nanti ada dibawah
 import io
+
+# queue salah satu cara paling mudah buat bikin shared variable
+# referensi: https://medium.com/omarelgabrys-blog/threads-vs-queues-a71e8dc30156
 import queue
+
 import threading
 import telebot
 import winsound
 import cv2
+
+# untuk capture signal yg dikirim keyboard, e.g: CTRL-C
 import signal
+
 import sys
-import logging
-logging.basicConfig(
-    format="%(threadName)s: --- %(message)s", level=logging.INFO)  # bagian ini gan buat apa ?
-# jelasin gan per baris koding biar ane paham
-logging.info("Mengimport module")
 
 logging.info("Inisiasi Bot telegram")
 bot = telebot.TeleBot(
@@ -20,16 +36,12 @@ bot = telebot.TeleBot(
 SUPERUSER = 626351605  # ganti pakai id telegrammu
 DELAY = 2  # detik masih belum  ngaruh. langsung brebett aja banyak foto
 
-q = queue.Queue()  # jelasin ini gan
-stopAll = False
-lastSending = None  # varibel ini yg bakal dijadiin timestamp
 
+q = queue.Queue()
+stopAll = False
+lastSending = None # variabel ini yg bakal dijadiin timestamp
 
 def sendAlert():  # jelasin proses ini sampe bawah
-    # referensi penggunaan global variable
-    # https://stackoverflow.com/questions/4693120/use-of-global-keyword-in-python
-    global lastSending
-
     logging.info("sendAlert dijalankan")
     while not stopAll:
         frame = q.get()
@@ -37,17 +49,29 @@ def sendAlert():  # jelasin proses ini sampe bawah
         success, jpgFrame = cv2.imencode(".jpg", frame)
         if success:
             winsound.Beep(2500, 1000)
-            lastSending = time.time()
             logging.info(f"Mengirim foto ke {SUPERUSER}")
+
+            # io.BytesIO sama kaya
+            #
+            # cv2.imwrite("jpgFrame.jpg", jpgFrame)
+            # ioBuffer = open("jpgFrame.jpg", "rb")
+            #
+            # hanya saja io.BytesIO nyimpen data nya bukan difile tapi
+            # didalam memori, ini lebih efisien daripada harus simpen
+            # terus dibuka lagi.
+            #
             # referensi: https://stackoverflow.com/a/11696554
+
             ioBuffer = io.BytesIO(jpgFrame)
             ioBuffer.seek(0)  # penting !!
             bot.send_photo(SUPERUSER, ioBuffer,
                            caption="Terdeteksi tidak menggunakan masker")
 
-            # update timestamp setelah berhasil mengirim foto
+        # ini untuk ngasih tau kalau task yg baru saja diambil (q.get) sudah selesai
+        # kalau gk di panggil queue gk bakal mau lanjut ke task berikutnya
+        # soalnya task yg sebelumnya dianggep belum selesai
 
-        q.task_done()  # jelasin gan
+        q.task_done()
 
 
 @bot.message_handler(commands=['start'])
@@ -70,12 +94,27 @@ def sendSignal(message):
 
 
 # handling ctrl-C signal
-def signal_handler(signal, frame):  # jelasin ini gan
+def signal_handler(signal, frame):
+    # kalau misal kita pencet ctrl-c nanti bakal muncul traceback
+    # KeyboardInterrupt iya kan, tapi masalahnya aku gk tau tracebacknya
+    # bakal muncul dimana, bisa aja pas lagi ngirim foto atau pas lagi deteksi
+    # object. kalau dikasih try except disetiap fungsi bakal gk efisien kodenya
+    #
+    # variable stopAll ini apa sih, kok kayaknya penting banget?
+    #   coba liat di bagian `while not stopAll`, maksudnya
+    #   looping jalan terus kalau variable stopAll False atau not True
+    #   nah kalau kita ganti stopAll jadi True ini bakal ngeberhentiin
+    #   semua looping yang pakai kondisi itu, fungsi sendSignal diatas
+    #   konsepnya sama
+
     global stopAll
     stopAll = True
 
+# alurnya simple cuma gini kalau terdeteksi signal yg di daftarin
+# disini `signal.SIGINT` atau CTRL-C maka panggil fungsi signal_handler
+# wiki: https://en.m.wikipedia.org/wiki/Signal_(IPC)
 
-signal.signal(signal.SIGINT, signal_handler)  # jelasin ini gan nyampe bawah
+signal.signal(signal.SIGINT, signal_handler)
 
 
 # menjalankan fungsi sendAlert dan bot
@@ -103,18 +142,23 @@ while not stopAll:
     ret, frame = cap.read()
     frame = cv2.flip(frame, 1)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
-    # jelasin angka angka ini gan
+
+    # jelasin angka angka ini gan!
+    # lho tak kira mas dah ngerti, soalnya aku cuma ngambil dikodingan yg mas kasih
+    # kemarin
+
     faces = face.detectMultiScale(gray, 1.1, 5, 0, (140, 140), (250, 250))
 
     mask = True
     for x, y, w, h in faces:
+
+        # yg ini juga sama
         smiles = smile.detectMultiScale(
-            gray[y:y + h, x:x + w], 1.4, 5, 0, (75, 75), (90, 90))  # sama ini juga
+            gray[y:y + h, x:x + w], 1.4, 5, 0, (75, 75), (90, 90))
         pesan = 'Dengan Masker'
         color = (0, 255, 0)
 
         for ex, ey, ew, eh in smiles:
-            logging.info("Terdeteksi tanpa masker")
             pesan = 'Tanpa Masker'
             color = (0, 0, 255)
             mask = False
@@ -124,18 +168,28 @@ while not stopAll:
         cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
         cv2.putText(frame, pesan, (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+
     if mask is False:
         # setelah terdeteksi tidak menggunakan masker
         # selanjutnya pastikan kalau waktu terakhir mengirim itu kurang dari DELAY
         # atau belum diset
-        if not lastSending or int(time.time() - lastSending) > DELAY:
+        current = time.time()
+        if not lastSending or int(current - lastSending) > DELAY:
             logging.info("Menambahkan frame ke dalam queue")
-            q.put(frame)  # jelasin bagian ini
+
+            # frame pengen dikirim, suruh frame buat ngantri
+            # budayakan mengantri
+            q.put(frame)
+
+            lastSending = current
+        else:
+            logging.info(f"lastSending: %s", current - (lastSending or 0))
 
     cv2.imshow("frame", frame)
-    # aku ambil kode dari sini
-    # https://stackoverflow.com/a/52913689
-    if cv2.waitKey(1) and 0xFF == ord("q"):
+
+    # capture key, delay 0
+    key = cv2.waitKey(0)
+    if key == ord("q"):
         break
 
 cv2.release()
