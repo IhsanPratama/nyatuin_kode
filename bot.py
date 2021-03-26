@@ -4,6 +4,9 @@ import logging
 # referensi, cara kerja logging dll bisa baca disini
 # https://gist.github.com/mariocj89/73824162a3e35d50db8e758a42e39aab
 
+
+# ubah level=logging.DEBUG menjadi level=logging.INFO jika
+# ingin keluar dari mode debugging atau sebaliknya
 logging.basicConfig(
     format="%(threadName)s: --- %(message)s", level=logging.INFO)
 
@@ -48,7 +51,9 @@ q = queue.Queue()
 stopAll = False
 lastSending = None # variabel ini yg bakal dijadiin timestamp
 
-def detectMask(self):
+def detectMask():
+    global lastSending
+
     # setelah tanya2, banyak yang nyaranin buat misahin
     # fungsi detect mask dan dijalanin pake threading
     # fungsi sendAlert aku gabungin jadi satu
@@ -56,6 +61,7 @@ def detectMask(self):
     logging.info("detectMask dijalankan")
     while not stopAll:
         frame = q.get()
+        logging.debug(f"{frame = }")
         frame = cv2.flip(frame, 1)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
 
@@ -90,6 +96,7 @@ def detectMask(self):
             # selanjutnya pastikan kalau waktu terakhir mengirim itu kurang dari DELAY
             # atau belum diset
             current = time.time()
+            logging.debug(f"current = {int(current - lastSending)")
             if not lastSending or int(current - lastSending) > DELAY:
                 # ubah numpy array (frame) ke bentuk format jpg
                 success, jpgFrame = cv2.imencode(".jpg", frame)
@@ -155,6 +162,8 @@ def signal_handler(signal, frame):
     #   konsepnya sama
 
     global stopAll
+
+    logging.debug("CTRL-C Signal Captured")
     stopAll = True
 
 # alurnya simple gini kalau terdeteksi signal yg di daftarin
@@ -179,10 +188,9 @@ cap = cv2.VideoCapture(0)
 currentFrame = 0
 
 while not stopAll:
-
-    # deteksi wajah dan lain lain
     ret, frame = cap.read()
 
+    logging.debug(f"{currentFrame = }")
     if ret and not q.full() and currentFrame > FRAMESKIP:
         q.put(frame)
         currentFrame = 0
@@ -194,6 +202,7 @@ while not stopAll:
     # capture key, delay 0
     # looping tak terbatas
     key = cv2.waitKey(0)
+    logging.debug(f"{key = }")
     if key == ord("q"):
         break
 
