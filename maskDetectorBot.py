@@ -6,12 +6,12 @@ logging.info("Mengimport module")
 
 # TODO: implementasi audio
 
+import simpleaudio as sa
 import time
 import io
 import queue
 import threading
 import telebot
-import winsound
 import cv2
 import signal
 import sys
@@ -29,6 +29,8 @@ stopAll = False
 interval = 2
 timestamp = time.time()
 lock = threading.Lock()
+
+wave_obj = sa.WaveObject.from_wave_file("sound/voice.wav")
 
 def sendAlert():
     """
@@ -63,7 +65,8 @@ def sendAlert():
 
             success, jpgFrame = cv2.imencode(".jpg", frame)
             if success:
-                winsound.Beep(2500, 1000)
+                play_obj = wave_obj.play()
+                play_obj.wait_done()
                 logging.info(f"melewati {total_dilewati} frame")
                 logging.info(f"Mengirim foto ke {SUPERUSER}")
                 ioBuffer = io.BytesIO(jpgFrame)
