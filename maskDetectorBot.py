@@ -6,11 +6,14 @@ logging.info("Mengimport module")
 import sys
 import signal
 import cv2
+
+# TODO: implementasi audio
 import winsound
 import telebot
 import threading
 import queue
 import io
+import time
 import time
 
 logging.info("Inisiasi Bot telegram")
@@ -22,20 +25,54 @@ SUPERUSER = 626351605  # ganti pakai id telegrammu
 q = queue.Queue()
 stopAll = False
 
+# interval = delay
+interval = 2
+timestamp = time.time()
 
 def sendAlert():
+
+    """
+    # penjabaran sederhana with lock
+    # lock = threading.Lock()
+
+    # tahan thread agar tidak terjadi konflik antar thread  saat mengganti
+    # global variabel
+    lock.aquire()
+
+    try:
+        # lakukan process disini
+    finally:
+
+        # release / jalankan lagi thread
+        lock.release()
+    """
+
+
+    global timestamp
     logging.info("sendAlert dijalankan")
+
+    total_dilewati = 0
     while not stopAll:
         frame = q.get()
-        winsound.Beep(2500, 1000)
 
-        success, jpgFrame = cv2.imencode(".jpg", frame)
-        if success:
+        sec = int(time.time() - timestamp)
+        if sec > interval:
+          with lock:
+             # reset timestamp
+             timestamp = time.time()
+             total_dilewati = 0
+
+          success, jpgFrame = cv2.imencode(".jpg", frame)
+          if success:
+            winsound.Beep(2500, 1000)
+            logging.info(f"melewati {total_dilewati} frame")
             logging.info(f"Mengirim foto ke {SUPERUSER}")
             ioBuffer = io.BytesIO(jpgFrame)
             ioBuffer.seek(0)  # penting !!
             bot.send_photo(SUPERUSER, ioBuffer,
                            caption="Terdeteksi tidak menggunakan masker")
+        else:
+            total_dilewati += 1
         q.task_done()
 
 
@@ -58,11 +95,19 @@ def sendSignal(message):
     stopAll = True
 
 
+def remove_item_queue():
+    while not q.empty():
+       try:
+           q.get(timeout=1)
+       except Exception:
+           pass
+
 def signal_handler(signal, frame):
     global stopAll
     stopAll = True
     cv2.release()
     cv2.destroyAllWindows()
+    remove_item_queue()
 
     sys.exit(0)
 
@@ -112,7 +157,6 @@ while not stopAll:
         cv2.putText(frame, pesan, (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
     if mask is False:
-        logging.info("Menambahkan item ke dalam queue")
         q.put(frame)
 
     cv2.imshow("frame", frame)
@@ -120,3 +164,4 @@ while not stopAll:
         break
 cv2.release()
 cv2.destroyAllWindows()
+remove_item_queue()
