@@ -3,18 +3,18 @@ logging.basicConfig(
     format="%(threadName)s: --- %(message)s", level=logging.INFO)
 
 logging.info("Mengimport module")
-import sys
-import signal
-import cv2
 
 # TODO: implementasi audio
-import winsound
-import telebot
-import threading
-import queue
+
+import simpleaudio as sa
+import time
 import io
-import time
-import time
+import queue
+import threading
+import telebot
+import cv2
+import signal
+import sys
 
 logging.info("Inisiasi Bot telegram")
 bot = telebot.TeleBot(
@@ -28,9 +28,11 @@ stopAll = False
 # interval = delay
 interval = 2
 timestamp = time.time()
+lock = threading.Lock()
+
+wave_obj = sa.WaveObject.from_wave_file("sound/voice.wav")
 
 def sendAlert():
-
     """
     # penjabaran sederhana with lock
     # lock = threading.Lock()
@@ -47,7 +49,6 @@ def sendAlert():
         lock.release()
     """
 
-
     global timestamp
     logging.info("sendAlert dijalankan")
 
@@ -57,20 +58,21 @@ def sendAlert():
 
         sec = int(time.time() - timestamp)
         if sec > interval:
-          with lock:
-             # reset timestamp
-             timestamp = time.time()
-             total_dilewati = 0
+            with lock:
+                # reset timestamp
+                timestamp = time.time()
+                total_dilewati = 0
 
-          success, jpgFrame = cv2.imencode(".jpg", frame)
-          if success:
-            winsound.Beep(2500, 1000)
-            logging.info(f"melewati {total_dilewati} frame")
-            logging.info(f"Mengirim foto ke {SUPERUSER}")
-            ioBuffer = io.BytesIO(jpgFrame)
-            ioBuffer.seek(0)  # penting !!
-            bot.send_photo(SUPERUSER, ioBuffer,
-                           caption="Terdeteksi tidak menggunakan masker")
+            success, jpgFrame = cv2.imencode(".jpg", frame)
+            if success:
+                play_obj = wave_obj.play()
+                play_obj.wait_done()
+                logging.info(f"melewati {total_dilewati} frame")
+                logging.info(f"Mengirim foto ke {SUPERUSER}")
+                ioBuffer = io.BytesIO(jpgFrame)
+                ioBuffer.seek(0)  # penting !!
+                bot.send_photo(SUPERUSER, ioBuffer,
+                               caption="Terdeteksi tidak menggunakan masker")
         else:
             total_dilewati += 1
         q.task_done()
@@ -97,10 +99,11 @@ def sendSignal(message):
 
 def remove_item_queue():
     while not q.empty():
-       try:
-           q.get(timeout=1)
-       except Exception:
-           pass
+        try:
+            q.get(timeout=1)
+        except Exception:
+            pass
+
 
 def signal_handler(signal, frame):
     global stopAll
