@@ -135,6 +135,9 @@ smile = cv2.CascadeClassifier(
 logging.info("Memulai kamera")
 cap = cv2.VideoCapture(0)
 
+frame_start_time = time.time()
+frame_counter = 0
+
 while not stopAll:
     ret, frame = cap.read()
     frame = cv2.flip(frame, 1)
@@ -149,7 +152,7 @@ while not stopAll:
         color = (0, 255, 0)
 
         for ex, ey, ew, eh in smiles:
-            logging.info("Terdeteksi tanpa masker")
+            logging.debug("Terdeteksi tanpa masker")
             pesan = 'Tanpa Masker'
             color = (0, 0, 255)
             mask = False
@@ -165,6 +168,24 @@ while not stopAll:
     cv2.imshow("frame", frame)
     if cv2.waitKey(1) and 0xFF == ord("q"):
         break
+
+    # tambah 1 setiap frame yang berhasil diambil
+    frame_counter += 1
+
+    # hitung durasi
+    elapsed_time = time.time() - frame_start_time
+    if (elapsed_time) > 1:
+         # rumus: jumlah frame dibagi durasi
+         fps = str(int(frame_counter / elapsed_time))
+
+         # harusnya dapet fps lebih dari 50, soalnya frame diproses dilatar belakang
+         logging.info("FPS:", fps)
+         # kalau mau ditampilin di layar, gunain cv2.putText kayak yg diatas
+
+         # reset
+         frame_counter = 0
+         frame_start_time = time.time()
+
 cv2.release()
 cv2.destroyAllWindows()
 remove_item_queue()
