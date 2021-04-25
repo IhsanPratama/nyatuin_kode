@@ -179,7 +179,7 @@ while not stopAll:
          fps = str(int(frame_counter / elapsed_time))
 
          # harusnya dapet fps lebih dari 50, soalnya frame diproses dilatar belakang
-         logging.info("FPS:", fps)
+         logging.info("FPS: %s", fps)
          # kalau mau ditampilin di layar, gunain cv2.putText kayak yg diatas
 
          # reset
