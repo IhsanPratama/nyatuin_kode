@@ -4,17 +4,16 @@ logging.basicConfig(
 
 logging.info("Mengimport module")
 
-# TODO: implementasi audio
-
-import simpleaudio as sa
-import time
-import io
-import queue
-import threading
-import telebot
-import cv2
-import signal
 import sys
+import signal
+import cv2
+import telebot
+import threading
+import queue
+import io
+import time
+import simpleaudio as sa
+
 
 logging.info("Inisiasi Bot telegram")
 bot = telebot.TeleBot(
@@ -31,6 +30,7 @@ timestamp = time.time()
 lock = threading.Lock()
 
 wave_obj = sa.WaveObject.from_wave_file("sound/voice.wav")
+
 
 def sendAlert():
     """
@@ -137,6 +137,29 @@ cap = cv2.VideoCapture(0)
 
 frame_start_time = time.time()
 frame_counter = 0
+FPS = 0
+
+# list default font:
+#   FONT_HERSHEY_COMPLEX
+#   FONT_HERSHEY_COMPLEX_SMALL
+#   FONT_HERSHEY_DUPLEX
+#   FONT_HERSHEY_PLAIN
+#   FONT_HERSHEY_SCRIPT_COMPLEX
+#   FONT_HERSHEY_SCRIPT_SIMPLEX
+#   FONT_HERSHEY_SIMPLEX
+#   FONT_HERSHEY_TRIPLEX
+#   FONT_ITALIC
+fontFace = cv2.FONT_HERSHEY_SIMPLEX
+
+# posisi text / koordinat
+coordinate = (10, 10)
+
+# Skala font / ukuran font
+# rumus: ukuran font asli dikali n
+fontScale = 1
+
+# warna font: putih
+fontColor = (255, 255, 255)
 
 while not stopAll:
     ret, frame = cap.read()
@@ -165,26 +188,38 @@ while not stopAll:
     if mask is False:
         q.put(frame)
 
-    cv2.imshow("frame", frame)
-    if cv2.waitKey(1) and 0xFF == ord("q"):
-        break
-
     # tambah 1 setiap frame yang berhasil diambil
     frame_counter += 1
 
     # hitung durasi
     elapsed_time = time.time() - frame_start_time
     if (elapsed_time) > 1:
-         # rumus: jumlah frame dibagi durasi
-         fps = str(int(frame_counter / elapsed_time))
+        # rumus: jumlah frame dibagi durasi
+        FPS = str(int(frame_counter / elapsed_time))
 
-         # harusnya dapet fps lebih dari 50, soalnya frame diproses dilatar belakang
-         logging.info("FPS: %s", fps)
-         # kalau mau ditampilin di layar, gunain cv2.putText kayak yg diatas
+        # XXX: harusnya dapet fps lebih dari 50, soalnya frame diproses dilatar belakang
+        # lupa kalau didalem loop masih ada detectMultiScale, jadi kisaran fps yg didapet
+        # sekitar 15-30 mungkin lebih
 
-         # reset
-         frame_counter = 0
-         frame_start_time = time.time()
+        # logging.info("FPS: %s", fps)
+
+        # reset
+        frame_counter = 0
+        frame_start_time = time.time()
+
+    # FPS berubah setiap 1 detik
+    cv2.putText(
+        img=frame,
+        text='FPS: %s' % FPS,
+        org=coordinate,
+        fontFace=fontFace,
+        fontScale=fontScale,
+        fontColor=fontColor
+    )
+
+    cv2.imshow("frame", frame)
+    if cv2.waitKey(1) and 0xFF == ord("q"):
+        break
 
 cv2.release()
 cv2.destroyAllWindows()
