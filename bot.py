@@ -1,3 +1,12 @@
+import sys
+import signal
+import cv2
+import winsound
+import telebot
+import threading
+import queue
+import io
+import time
 import logging
 
 # Dalam kasus ini aku pakai logging buat pengganti print aja sih
@@ -12,25 +21,16 @@ logging.basicConfig(
 
 logging.info("Mengimport module")
 
-import time
 
 # aku pake module ini buat pengganti keyword open
 # penjelasan kenapa, nanti ada dibawah
-import io
 
 # queue salah satu cara paling mudah buat bikin shared variable
 # referensi: https://medium.com/omarelgabrys-blog/threads-vs-queues-a71e8dc30156
-import queue
 
-import threading
-import telebot
-import winsound
-import cv2
 
 # untuk capture signal yg dikirim keyboard, e.g: CTRL-C
-import signal
 
-import sys
 
 logging.info("Inisiasi Bot telegram")
 bot = telebot.TeleBot(
@@ -38,8 +38,8 @@ bot = telebot.TeleBot(
 )
 SUPERUSER = 626351605  # ganti pakai id telegrammu
 DELAY = 2  # detik
-FRAMESKIP = 5 # skip frame setelah x kali, video capture jalan normal
-              # ini berlaku buat queuenya
+FRAMESKIP = 5  # skip frame setelah x kali, video capture jalan normal
+# ini berlaku buat queuenya
 
 logging.info("Inisisasi CascadeClasifier")
 face = cv2.CascadeClassifier(
@@ -49,7 +49,8 @@ smile = cv2.CascadeClassifier(
 
 q = queue.Queue()
 stopAll = False
-lastSending = None # variabel ini yg bakal dijadiin timestamp
+lastSending = None  # variabel ini yg bakal dijadiin timestamp
+
 
 def detectMask():
     global lastSending
@@ -89,7 +90,7 @@ def detectMask():
             # aku ubah gray jadi frame soalnya yg dikirim gambar abu2
             cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
             cv2.putText(frame, pesan, (x, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
 
         if mask is False:
             # setelah terdeteksi tidak menggunakan masker
@@ -169,6 +170,7 @@ def signal_handler(signal, frame):
 # alurnya simple gini kalau terdeteksi signal yg di daftarin
 # disini `signal.SIGINT` atau CTRL-C maka panggil fungsi signal_handler
 # wiki: https://en.m.wikipedia.org/wiki/Signal_(IPC)
+
 
 signal.signal(signal.SIGINT, signal_handler)
 
