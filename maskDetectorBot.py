@@ -83,7 +83,7 @@ def sendAlert():
                 tmp = tempfile.NamedTemporaryFile(suffix='.jpg')
 
                 logging.info(f"Mengirim file {tmp.name!r} ke {SUPERUSER}")
-                cv2.imwrite(tmp.name, jpgFrame)
+                tmp.write(jpgFrame)
                 client.loop.run_until_complete(client.send_file(SUPERUSER, tmp.name,
                                caption="Terdeteksi tidak menggunakan masker"))
         else:
@@ -235,7 +235,7 @@ while not stopAll:
         org=coordinate,
         fontFace=fontFace,
         fontScale=fontScale,
-        fontColor=fontColor
+        color=fontColor
     )
 
     cv2.imshow("frame", frame)
