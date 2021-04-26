@@ -1,35 +1,21 @@
+import simpleaudio as sa
+import time
+import io
+import queue
+import threading
+import telebot
+import cv2
+import signal
+import sys
 import logging
 logging.basicConfig(
     format="%(threadName)s: --- %(message)s", level=logging.INFO)
 
 logging.info("Mengimport module")
 
-import sys
-import signal
-import cv2
-import telebot
-import threading
-import queue
-import time
-import simpleaudio as sa
-import tempfile
-
-from telethon import TelegramClient
-from telethon import events
-import asyncio
-
-import nest_asyncio
-nest_asyncio.apply()
-
-# cara bikin API_ID & API_HASH, bisa baca langsung di official docnya
-# https://core.telegram.org/api/obtaining_api_id
-
-API_ID = ""
-API_HASH = ""
 
 logging.info("Inisiasi Bot telegram")
-client = TelegramClient("session/botsession", API_ID, API_KEY)
-client.start(
+bot = telebot.TeleBot(
     "1752888275:AAGoy1NhTK0K6OfXHwK0jIYqe9VP246kGkc"
 )
 SUPERUSER = 626351605  # ganti pakai id telegrammu
@@ -80,40 +66,34 @@ def sendAlert():
             if success:
                 play_obj = wave_obj.play()
                 play_obj.wait_done()
-
                 logging.info(f"melewati {total_dilewati} frame")
-                tmp = tempfile.NamedTemporaryFile(suffix='.jpg')
-
-                logging.info(f"Mengirim file {tmp.name!r} ke {SUPERUSER}")
-                tmp.write(jpgFrame)
-
-                client.loop.run_until_complete(client.send_file(SUPERUSER, tmp.name,
-                               caption="Terdeteksi tidak menggunakan masker"))
+                logging.info(f"Mengirim foto ke {SUPERUSER}")
+                ioBuffer = io.BytesIO(jpgFrame)
+                ioBuffer.seek(0)  # penting !!
+                bot.send_photo(SUPERUSER, ioBuffer,
+                               caption="Terdeteksi tidak menggunakan masker")
         else:
             total_dilewati += 1
         q.task_done()
 
 
-@client.on(events.NewMessage(pattern=r"^/start"))
-async def action_start(event):
-    sender = await event.get_sender()
-    nama = sender.first_name
-    lastname = sender.last_name
-    await event.reply("Hello apa kabar {} {}".format(nama, lastname))
+@bot.message_handler(commands=['start'])
+def action_start(message):
+    nama = message.from_user.first_name
+    lastname = message.from_user.last_name
+    bot.reply_to(message, "Hello apa kabar {} {}".format(nama, lastname))
 
 
-@client.on(events.NewMessage(pattern=r"^/help"))
-async def send_welcome(event):
-    await event.reply("perlu apa gaes?")
+@bot.message_handler(commands=['help'])
+def send_welcome(message):
+    bot.reply_to(message, "perlu apa gaes?")
 
-@client.on(events.NewMessage(pattern=r"^/stop"))
-async def sendSignal(message):
+
+@bot.message_handler(commands=["stop"], func=lambda x: x.from_user.id == SUPERUSER)
+def sendSignal(message):
     global stopAll
-
-    sender = await client.get_sender()
-    if sender.id == SUPERUSER:
-        await event.reply("Video Capture dihentikan")
-        cleanup()
+    bot.reply_to(message, "Video Capture dihentikan")
+    stopAll = True
 
 
 def remove_item_queue():
@@ -124,38 +104,24 @@ def remove_item_queue():
             pass
 
 
-def cleanup(*args, **kwargs):
+def signal_handler(signal, frame):
     global stopAll
     stopAll = True
-
     cv2.release()
     cv2.destroyAllWindows()
-
     remove_item_queue()
-
-    if client.is_connected:
-        client.loop.run_until_complete(client.disconnect())
 
     sys.exit(0)
 
-signal.signal(signal.SIGINT, cleanup)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 th = threading.Thread(target=sendAlert)
 th.setDaemon(True)
 th.start()
 
-# life hack, karena telethon itu asyncronous dan entah kenapa
-# ketika ngejalanin client, listenernya malah gk bisa kepanggil
-# listener: @client.on
-
-def loop_inside_thread(loop):
-    asyncio.set_event_loop(loop)
-    # jika error / gagal konek ganti client.disconnected jadi
-    # client.run_until_disconnected()
-    loop.run_until_complete(client.disconnected)
-
 logging.info("Bot Berjalan dilatar belakang")
-th = threading.Thread(target=loop_inside_thread, args=(client.loop,))
+th = threading.Thread(target=bot.polling)
 th.setDaemon(True)
 th.start()
 
@@ -254,4 +220,6 @@ while not stopAll:
     if cv2.waitKey(1) and 0xFF == ord("q"):
         break
 
-cleanup()
+cv2.release()
+cv2.destroyAllWindows()
+remove_item_queue()
