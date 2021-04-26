@@ -1,3 +1,9 @@
+import logging
+logging.basicConfig(
+    format="%(threadName)s: --- %(message)s", level=logging.INFO)
+
+logging.info("Mengimport module")
+
 import simpleaudio as sa
 import time
 import io
@@ -7,11 +13,6 @@ import telebot
 import cv2
 import signal
 import sys
-import logging
-logging.basicConfig(
-    format="%(threadName)s: --- %(message)s", level=logging.INFO)
-
-logging.info("Mengimport module")
 
 
 logging.info("Inisiasi Bot telegram")
@@ -104,8 +105,9 @@ def remove_item_queue():
             pass
 
 
-def signal_handler(signal, frame):
+def cleanup(*args):
     global stopAll
+
     stopAll = True
     cv2.release()
     cv2.destroyAllWindows()
@@ -114,7 +116,7 @@ def signal_handler(signal, frame):
     sys.exit(0)
 
 
-signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGINT, cleanup)
 
 th = threading.Thread(target=sendAlert)
 th.setDaemon(True)
@@ -220,6 +222,5 @@ while not stopAll:
     if cv2.waitKey(1) and 0xFF == ord("q"):
         break
 
-cv2.release()
-cv2.destroyAllWindows()
-remove_item_queue()
+
+cleanup()
