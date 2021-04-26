@@ -4,16 +4,15 @@ logging.basicConfig(
 
 logging.info("Mengimport module")
 
-import simpleaudio as sa
-import time
-import io
-import queue
-import threading
-import telebot
-import cv2
-import signal
 import sys
-
+import signal
+import cv2
+import telebot
+import threading
+import queue
+import io
+import time
+import simpleaudio as sa
 
 logging.info("Inisiasi Bot telegram")
 bot = telebot.TeleBot(
@@ -59,20 +58,21 @@ def sendAlert():
         sec = int(time.time() - timestamp)
         if sec > interval:
             with lock:
-                # reset timestamp
                 timestamp = time.time()
-                total_dilewati = 0
 
-            success, jpgFrame = cv2.imencode(".jpg", frame)
-            if success:
-                play_obj = wave_obj.play()
-                play_obj.wait_done()
-                logging.info(f"melewati {total_dilewati} frame")
-                logging.info(f"Mengirim foto ke {SUPERUSER}")
-                ioBuffer = io.BytesIO(jpgFrame)
-                ioBuffer.seek(0)  # penting !!
-                bot.send_photo(SUPERUSER, ioBuffer,
-                               caption="Terdeteksi tidak menggunakan masker")
+                success, jpgFrame = cv2.imencode(".jpg", frame)
+                if success:
+                    play_obj = wave_obj.play()
+                    play_obj.wait_done()
+
+                    logging.info(f"melewati {total_dilewati} frame")
+                    logging.info(f"Mengirim foto ke {SUPERUSER}")
+
+                    ioBuffer = io.BytesIO(jpgFrame)
+                    ioBuffer.seek(0)  # penting !!
+                    bot.send_photo(SUPERUSER, ioBuffer,
+                                   caption="Terdeteksi tidak menggunakan masker")
+                    total_dilewati = 0
         else:
             total_dilewati += 1
         q.task_done()
@@ -153,7 +153,7 @@ FPS = 0
 fontFace = cv2.FONT_HERSHEY_SIMPLEX
 
 # posisi text / koordinat
-coordinate = (10, 10)
+coordinate = (10, 20)
 
 # Skala font / ukuran font
 # rumus: ukuran font asli dikali n
@@ -161,6 +161,9 @@ fontScale = 1
 
 # warna font: putih
 fontColor = (255, 255, 255)
+
+# tipe line
+lineType = 2
 
 while not stopAll:
     ret, frame = cap.read()
@@ -186,7 +189,7 @@ while not stopAll:
         cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
         cv2.putText(frame, pesan, (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
-    if mask is False:
+    if mask is False and not lock.locked():
         q.put(frame)
 
     # tambah 1 setiap frame yang berhasil diambil
@@ -215,8 +218,11 @@ while not stopAll:
         org=coordinate,
         fontFace=fontFace,
         fontScale=fontScale,
-        color=fontColor
+        color=fontColor,
+        lineType=lineType
     )
+
+    logging.debug("Queue size: %s", q.qsize())
 
     cv2.imshow("frame", frame)
     if cv2.waitKey(1) and 0xFF == ord("q"):
