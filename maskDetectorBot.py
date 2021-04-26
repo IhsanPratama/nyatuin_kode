@@ -23,6 +23,7 @@ nest_asyncio.apply()
 
 # cara bikin API_ID & API_HASH, bisa baca langsung di official docnya
 # https://core.telegram.org/api/obtaining_api_id
+
 API_ID = ""
 API_HASH = ""
 
