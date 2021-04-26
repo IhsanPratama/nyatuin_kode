@@ -30,7 +30,7 @@ API_HASH = ""
 logging.info("Inisiasi Bot telegram")
 client = TelegramClient("session/botsession", API_ID, API_KEY)
 client.start(
-    "1752888275:AAGoy1NhTK0K6OfXHwK0jIYqe9VP246kGkc"
+    bot_token="1752888275:AAGoy1NhTK0K6OfXHwK0jIYqe9VP246kGkc"
 )
 SUPERUSER = 626351605  # ganti pakai id telegrammu
 
