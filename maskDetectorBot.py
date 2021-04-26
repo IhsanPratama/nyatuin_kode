@@ -79,11 +79,13 @@ def sendAlert():
             if success:
                 play_obj = wave_obj.play()
                 play_obj.wait_done()
+
                 logging.info(f"melewati {total_dilewati} frame")
                 tmp = tempfile.NamedTemporaryFile(suffix='.jpg')
 
                 logging.info(f"Mengirim file {tmp.name!r} ke {SUPERUSER}")
                 tmp.write(jpgFrame)
+
                 client.loop.run_until_complete(client.send_file(SUPERUSER, tmp.name,
                                caption="Terdeteksi tidak menggunakan masker"))
         else:
@@ -106,10 +108,11 @@ async def send_welcome(event):
 @client.on(events.NewMessage(pattern=r"^/stop"))
 async def sendSignal(message):
     global stopAll
+
     sender = await client.get_sender()
     if sender.id == SUPERUSER:
         await event.reply("Video Capture dihentikan")
-        stopAll = True
+        cleanup()
 
 
 def remove_item_queue():
@@ -120,21 +123,29 @@ def remove_item_queue():
             pass
 
 
-def signal_handler(signal, frame):
+def cleanup(*args, **kwargs):
     global stopAll
     stopAll = True
+
     cv2.release()
     cv2.destroyAllWindows()
+
     remove_item_queue()
+
+    if client.is_connected:
+        client.loop.run_until_complete(client.disconnect())
 
     sys.exit(0)
 
-
-signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGINT, cleanup)
 
 th = threading.Thread(target=sendAlert)
 th.setDaemon(True)
 th.start()
+
+# life hack, karena telethon itu asyncronous dan entah kenapa
+# ketika ngejalanin client, listenernya malah gk bisa kepanggil
+# listener: @client.on
 
 def loop_inside_thread(loop):
     asyncio.set_event_loop(loop)
@@ -242,9 +253,4 @@ while not stopAll:
     if cv2.waitKey(1) and 0xFF == ord("q"):
         break
 
-cv2.release()
-cv2.destroyAllWindows()
-remove_item_queue()
-
-if client.is_connected:
-    client.loop.run_until_complete(client.disconnect())
+cleanup()
