@@ -10,13 +10,25 @@ import cv2
 import telebot
 import threading
 import queue
-import io
 import time
 import simpleaudio as sa
+import tempfile
 
+from telethon import TelegramClient
+from telethon import events
+import asyncio
+
+import nest_asyncio
+nest_asyncio.apply()
+
+# cara bikin API_ID & API_HASH, bisa baca langsung di official docnya
+# https://core.telegram.org/api/obtaining_api_id
+API_ID = ""
+API_HASH = ""
 
 logging.info("Inisiasi Bot telegram")
-bot = telebot.TeleBot(
+client = TelegramClient("session/botsession", API_ID, API_KEY)
+client.start(
     "1752888275:AAGoy1NhTK0K6OfXHwK0jIYqe9VP246kGkc"
 )
 SUPERUSER = 626351605  # ganti pakai id telegrammu
@@ -68,33 +80,36 @@ def sendAlert():
                 play_obj = wave_obj.play()
                 play_obj.wait_done()
                 logging.info(f"melewati {total_dilewati} frame")
-                logging.info(f"Mengirim foto ke {SUPERUSER}")
-                ioBuffer = io.BytesIO(jpgFrame)
-                ioBuffer.seek(0)  # penting !!
-                bot.send_photo(SUPERUSER, ioBuffer,
-                               caption="Terdeteksi tidak menggunakan masker")
+                tmp = tempfile.NamedTemporaryFile(suffix='.jpg')
+
+                logging.info(f"Mengirim file {tmp.name!r} ke {SUPERUSER}")
+                cv2.imwrite(tmp.name, jpgFrame)
+                client.loop.run_until_complete(client.send_file(SUPERUSER, tmp.name,
+                               caption="Terdeteksi tidak menggunakan masker"))
         else:
             total_dilewati += 1
         q.task_done()
 
 
-@bot.message_handler(commands=['start'])
-def action_start(message):
-    nama = message.from_user.first_name
-    lastname = message.from_user.last_name
-    bot.reply_to(message, "Hello apa kabar {} {}".format(nama, lastname))
+@client.on(events.NewMessage(pattern=r"^/start"))
+async def action_start(event):
+    sender = await event.get_sender()
+    nama = sender.first_name
+    lastname = sender.last_name
+    await event.reply("Hello apa kabar {} {}".format(nama, lastname))
 
 
-@bot.message_handler(commands=['help'])
-def send_welcome(message):
-    bot.reply_to(message, "perlu apa gaes?")
+@client.on(events.NewMessage(pattern=r"^/help"))
+async def send_welcome(event):
+    await event.reply("perlu apa gaes?")
 
-
-@bot.message_handler(commands=["stop"], func=lambda x: x.from_user.id == SUPERUSER)
-def sendSignal(message):
+@client.on(events.NewMessage(pattern=r"^/stop"))
+async def sendSignal(message):
     global stopAll
-    bot.reply_to(message, "Video Capture dihentikan")
-    stopAll = True
+    sender = await client.get_sender()
+    if sender.id == SUPERUSER:
+        await event.reply("Video Capture dihentikan")
+        stopAll = True
 
 
 def remove_item_queue():
@@ -121,8 +136,14 @@ th = threading.Thread(target=sendAlert)
 th.setDaemon(True)
 th.start()
 
+def loop_inside_thread(loop):
+    asyncio.set_event_loop(loop)
+    # jika error / gagal konek ganti client.disconnected jadi
+    # client.run_until_disconnected()
+    loop.run_until_complete(client.disconnected)
+
 logging.info("Bot Berjalan dilatar belakang")
-th = threading.Thread(target=bot.polling)
+th = threading.Thread(target=loop_inside_thread, args=(client.loop,))
 th.setDaemon(True)
 th.start()
 
@@ -224,3 +245,6 @@ while not stopAll:
 cv2.release()
 cv2.destroyAllWindows()
 remove_item_queue()
+
+if client.is_connected:
+    client.loop.run_until_complete(client.disconnect())
