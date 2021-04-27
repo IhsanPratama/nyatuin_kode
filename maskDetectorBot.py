@@ -54,7 +54,6 @@ lock = threading.Lock()
 
 wave_obj = sa.WaveObject.from_wave_file("sound/voice.wav")
 
-
 def sendAlert():
     """
     # penjabaran sederhana with lock
@@ -110,9 +109,7 @@ smile = cv2.CascadeClassifier(
 
 def detectMask():
     while not stopAll:
-        raw = raw_frame.get()
-
-        frame = cv2.flip(raw, 1)
+        frame = raw_frame.get()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
         faces = face.detectMultiScale(gray, 1.1, 5, 0, (140, 140), (250, 250))
 
@@ -135,8 +132,8 @@ def detectMask():
                         cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
 
         # lewati frame jika thread dalam kondisi lock tidak peduli mask
-        # bernilai True
-        if mask is True and not lock.locked():
+        # bernilai False
+        if mask is False and not lock.locked():
             frame_tanpa_masker.put(frame)
         raw_frame.task_done()
 
@@ -196,6 +193,8 @@ while not stopAll:
     ret, frame = cap.read()
     if not ret:
         break
+
+    frame = cv2.flip(frame, 1)
 
     # lewati frame jika thread dalam kondisi lock (frame sedang
     # dikirim keclient telegram)
